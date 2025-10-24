@@ -1,68 +1,132 @@
+import sqlite3
 import tkinter as tk
 from tkinter import messagebox
-from PIL import Image, ImageTk
+from tkinter import ttk
 
-
+DB_NAME = "autoventas.db"
 
 class Usuario:
-    def __init__(self, usuario, contrasenia):
+    def __init__(self, usuario, contrasenia, rol="Vendedor"):
         self.usuario = usuario
         self.contrasenia = contrasenia
+        self.rol = rol
 
-class Login(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Login AutoVentas Los Altos")
-        self.geometry("300x500")
-        self.configure(bg="#0D1B2A")
-        self.resizable(False, False)
+    @staticmethod
+    def _conn():
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id_usuario INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario TEXT UNIQUE NOT NULL,
+                contrasenia TEXT NOT NULL,
+                rol TEXT NOT NULL CHECK(rol IN ('Administrador','Vendedor','Supervisor'))
+            );
+        """)
+        conn.commit()
+        return conn
 
-        self.usuarios = {}
-        self.cargar_usuarios()
-        self.guardar_usuarios()
+    def guardar(self):
+        with Usuario._conn() as conn:
+            conn.execute(
+                "INSERT INTO usuarios (usuario, contrasenia, rol) VALUES (?, ?, ?)",
+                (self.usuario.strip().lower(), self.contrasenia, self.rol)
+            )
+        print(f"Usuario '{self.usuario}' guardado con éxito.")
 
-        self.logo = tk.PhotoImage(file="icono_usuario.png")
-        tk.Label(self, image=self.logo, bg="white").pack(pady=10)
+    @staticmethod
+    def listar():
+        with Usuario._conn() as conn:
+            cur = conn.execute("SELECT * FROM usuarios ORDER BY id_usuario")
+            filas = cur.fetchall()
+            if not filas:
+                print("No hay usuarios registrados.")
+                return
+            print("\nLISTADO DE USUARIOS ")
+            for f in filas:
+                print(f"ID: {f['id_usuario']} | Usuario: {f['usuario']} | Rol: {f['rol']}")
 
-        tk.Label(self, text="Usuario:", bg="#0D1B2A", fg="white", font=("Arial", 12)).pack(pady=10)
-        self.txt_usuario = tk.Entry(self)
-        self.txt_usuario.pack(pady=10)
-        self.txt_usuario.focus()
+    @staticmethod
+    def modificar():
+        ide = input("ID de usuario a modificar: ")
+        with Usuario._conn() as conn:
+            cur = conn.execute("SELECT * FROM usuarios WHERE id_usuario = ?", (ide,))
+            fila = cur.fetchone()
+            if not fila:
+                print("No se encontró el usuario.")
+                return
+            usuario = input(f"Nuevo usuario [{fila['usuario']}]: ") or fila['usuario']
+            contrasenia = input(f"Nueva contraseña [****]: ") or fila['contrasenia']
+            rol = input(f"Nuevo rol (Administrador/Vendedor/Supervisor) [{fila['rol']}]: ") or fila['rol']
+            conn.execute("UPDATE usuarios SET usuario=?, contrasenia=?, rol=? WHERE id_usuario=?",
+                (usuario.strip().lower(), contrasenia, rol, ide)
+            )
+        print("Usuario actualizado con éxito.")
 
-        tk.Label(self, text="Contraseña:", bg="#0D1B2A", fg="white", font=("Arial", 12)).pack(pady=10)
-        self.txt_contra = tk.Entry(self, show="•")
-        self.txt_contra.pack(pady=10)
+    @staticmethod
+    def eliminar():
+        ide = input("ID de usuario a eliminar: ")
+        with Usuario._conn() as conn:
+            cur = conn.execute("DELETE FROM usuarios WHERE id_usuario = ?", (ide,))
+            if cur.rowcount == 0:
+                print("No se encontró el usuario.")
+            else:
+                print("Usuario eliminado con éxito.")
 
-        tk.Button(self, text="Ingresar", command=self.ingresar, bg="#1B263B", fg="white",font=("Arial", 14)).pack(pady=20)
-        tk.Button(self, text="Salir", command=self.destroy, bg="#1B263B", fg="white",font=("Arial", 14)).pack()
+    @staticmethod
+    def autenticar(usuario, contrasenia):
+        with Usuario._conn() as conn:
+            cur = conn.execute(
+                "SELECT * FROM usuarios WHERE lower(trim(usuario)) = ? AND contrasenia = ?",
+                (usuario.strip().lower(), contrasenia)
+            )
+            return cur.fetchone()
+
+    @staticmethod
+    def admin_principal():
+        with Usuario._conn() as conn:
+            conn.execute("""
+                INSERT OR IGNORE INTO usuarios (usuario, contrasenia, rol)
+                VALUES ('darwin','7733','Administrador')
+            """)
+            conn.commit()
 
 
-    def cargar_usuarios(self):
-        try:
-            with open("Usuarios.txt", "r", encoding="utf-8") as f:
-                for linea in f:
-                    linea = linea.strip()
-                    if linea:
-                        usuario, contra = linea.split(",")
-                        self.usuarios[usuario] = Usuario(usuario, contra)
-            print("Usuarios importados desde Usuarios.txt")
-        except FileNotFoundError:
-            print("No existe el archivo Usuarios.txt")
+class VentanaLogin:
+    def __init__(self, master):
+        self.ventana = master
+        self.ventana.title("Login Autoventas Los Altos")
+        self.ventana.geometry("400x500")
+        self.ventana.configure(bg="#0D1B2A")
 
-    def guardar_usuarios(self):
-        with open("Usuarios.txt", "w", encoding="utf-8") as archivo:
-            for u in self.usuarios.values():
-                archivo.write(f"{u.usuario},{u.contrasenia}\n")
-        print("Usuarios guardados en Usuarios.txt")
+        tk.Label(self.ventana, text="USUARIO", bg="#0D1B2A", fg="white",font=("Arial", 12, "bold")).pack(pady=30)
+        self.texto_usuario = tk.Entry(self.ventana, font=("Arial", 14))
+        self.texto_usuario.pack()
 
-    def ingresar(self):
-        usuario = self.txt_usuario.get().strip()
-        contra = self.txt_contra.get().strip()
+        tk.Label(self.ventana, text="CONTRASEÑA", bg="#0D1B2A", fg="white",font=("Arial", 12, "bold")).pack(pady=30)
+        self.texto_contrasenia = tk.Entry(self.ventana, show="*", font=("Arial", 14))
+        self.texto_contrasenia.pack()
 
-        if usuario in self.usuarios and self.usuarios[usuario].contrasenia == contra:
-            messagebox.showinfo("Acceso", f"Bienvenido, {usuario}")
+        tk.Button(self.ventana, text="Iniciar sesión", command=self.verificar_login, bg="#1B263B", fg="white", font=("Arial", 14, "bold"),width=16).pack(pady=30)
+
+    def verificar_login(self):
+        usuario = self.texto_usuario.get()
+        contrasenia = self.texto_contrasenia.get()
+
+        if not usuario or not contrasenia:
+            messagebox.showwarning("Advertencia", "Llenar usuario y contraseña .")
+            return
+
+        fila = Usuario.autenticar(usuario, contrasenia)
+        if fila:
+            messagebox.showinfo("Acceso", f"Bienvenido {fila['usuario']} ({fila['rol']})")
         else:
-            messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+            messagebox.showerror("Error", "Usuario o contraseña incorrectos, o no existen jaja.")
+def main():
+    Usuario.admin_principal()
+    win = tk.Tk()
+    VentanaLogin(win)
+    win.mainloop()
+
 if __name__ == "__main__":
-    app = Login()
-    app.mainloop()
+    main()
