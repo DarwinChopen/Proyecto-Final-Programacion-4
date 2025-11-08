@@ -117,6 +117,9 @@ class VentanaTaller:
         tk.Label(form, text="Filtrar estado:", bg="#0D1B2A", fg="white", font=("Arial", 11)).grid(row=6, column=0,padx=4, pady=6, sticky="w")
         combo_filtro = ttk.Combobox(form, textvariable=self.filtro_estado, state="readonly",values=["Todos", "Pendiente", "Reparado"], width=25)
         combo_filtro.grid(row=6, column=1, padx=4, pady=6, sticky="w")
+        combo_filtro.bind("<<ComboboxSelected>>")
+
+
 
         panel_listado = tk.Frame(botones_principales, bg="#0D1B2A")
         panel_listado.pack(side="right", fill="both", expand=True)
@@ -159,3 +162,86 @@ class VentanaTaller:
         scroll_y.pack(side="right", fill="y")
         scroll_x.pack(side="bottom", fill="x")
 
+        self.tabla.bind("<<TreeviewSelect>>")
+
+        pie = tk.Frame(self.ventana, bg="#0D1B2A")
+        pie.pack(fill="x", padx=10, pady=6)
+
+        self.btn_guardar = tk.Button(pie, text="Guardar 💾", command=self.boton_guardar, bg="dim grey", fg="white", font=("Arial", 12), width=12)
+        self.btn_guardar.pack(side="left", padx=6)
+        self.btn_editar = tk.Button(pie, text="Editar 📝", command=self.boton_editar, bg="DodgerBlue4", fg="white", font=("Arial", 12), width=12)
+        self.btn_editar.pack(side="left", padx=6)
+        self.btn_eliminar = tk.Button(pie, text="Eliminar 🗑️", command=self.boton_eliminar, bg="red4", fg="white", font=("Arial", 12), width=12)
+        self.btn_eliminar.pack(side="left", padx=6)
+        self.btn_limpiar = tk.Button(pie, text="Limpiar/Cancelar ❌", command=self.boton_limpiar_formulario, bg="dark slate gray", fg="white", font=("Arial", 12), width=14)
+        self.btn_limpiar.pack(side="right", padx=6)
+        self.btn_salir = tk.Button(pie, text="Salir ↩️", command=self.boton_salir, bg="green", fg="white", font=("Arial", 12), width=12)
+        self.btn_salir.pack(side="right", padx=6)
+
+        self.actualizar_estado_botones()
+
+    def boton_guardar(self):
+        if self.modo_edicion:
+            messagebox.showinfo("Guardar", "No puedes guardar mientras estás editando. Usa 'Editar' para aplicar cambios o 'Limpiar' para cancelar.")
+            return
+
+
+    def boton_editar(self):
+        if not self.id_seleccionado:
+            messagebox.showwarning("Editar", "Selecciona un trabajo del listado.")
+            return
+        if not messagebox.askyesno("Confirmar edición", "¿Deseas aplicar los cambios al trabajo seleccionado?"):
+            return
+
+    def boton_eliminar(self):
+        sel = self.tabla.selection()
+        if not sel:
+            messagebox.showwarning("Eliminar", "Selecciona un trabajo del listado.")
+            return
+        id_str = sel[0]
+        if not messagebox.askyesno("Confirmar eliminación", f"¿Está seguro de eliminar el trabajo con ID '{id_str}'? Esta acción no se puede deshacer."):
+            return
+        vals = self.tabla.item(id_str, "values")
+        vin = vals[1] if vals else None
+        TrabajoTaller.eliminar(int(id_str))
+        messagebox.showinfo("Eliminado", "Trabajo eliminado con éxito.")
+
+        self.boton_limpiar_formulario()
+
+    def boton_limpiar_formulario(self):
+        self.id_seleccionado = None
+        self.modo_edicion = False
+        self.combo_vin.set("")
+        self.caja_taller.delete(0, tk.END)
+        self.caja_fecha.delete(0, tk.END)
+        self.caja_fecha.insert(0, date.today().isoformat())
+        self.text_descripcion.delete("1.0", tk.END)
+        self.caja_precio.delete(0, tk.END)
+        self.caja_precio.insert(0, "0.00")
+        self.combo_estado.set("Pendiente")
+        for item in self.tabla.selection():
+            self.tabla.selection_remove(item)
+        self.actualizar_estado_botones()
+
+    def boton_salir(self):
+        if hasattr(self.principal, "deiconify"):
+            try:
+                self.principal.deiconify()
+            except Exception:
+                pass
+        self.ventana.destroy()
+
+    def actualizar_estado_botones(self):
+        if self.modo_edicion or self.id_seleccionado:
+            self.btn_guardar.config(state="disabled")
+            self.btn_editar.config(state="normal")
+            self.btn_eliminar.config(state="normal")
+        else:
+            self.btn_guardar.config(state="normal")
+            self.btn_editar.config(state="disabled")
+            self.btn_eliminar.config(state="disabled")
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.withdraw()
+    VentanaTaller(root)
+    root.mainloop()
