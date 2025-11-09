@@ -1,4 +1,3 @@
-# usuarios.py
 import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -9,8 +8,10 @@ class VentanaUsuario:
         self.principal = principal
         self.ventana = tk.Toplevel(principal)
         self.ventana.title("Usuarios")
-        self.ventana.geometry("1200x700")
         self.ventana.configure(bg="#0D1B2A")
+        #self.ventana.geometry("1200x700")
+        self.ventana.update()
+        self.ventana.state("zoomed")# pantrla completa
 
         self.id_seleccionado = None
         self.modo_edicion = False
@@ -24,10 +25,6 @@ class VentanaUsuario:
 
         form = tk.Frame(botones_principales, bg="#0D1B2A")
         form.pack(side="left", fill="y", padx=(4, 14))
-
-        tk.Label(form, text="ID :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=0, column=0, padx=4, pady=10, sticky="w")
-        self.caja_id = tk.Entry(form, font=("Arial", 11), width=30, state="disabled")
-        self.caja_id.grid(row=0, column=1, padx=4, pady=10, sticky="w")
 
         tk.Label(form, text="Usuario :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=1, column=0, padx=4, pady=10, sticky="w")
         self.caja_usuario = tk.Entry(form, font=("Arial", 11), width=30)
@@ -152,14 +149,6 @@ class VentanaUsuario:
         vals = self.tabla.item(iid, "values")
         self.id_seleccionado = vals[0]
 
-
-        try:
-            self.caja_id.config(state="normal")
-            self.caja_id.delete(0, tk.END); self.caja_id.insert(0, vals[0])
-            self.caja_id.config(state="disabled")
-        except Exception:
-            pass
-
         self.caja_usuario.delete(0, tk.END); self.caja_usuario.insert(0, vals[1])
         self.combo_rol.set(vals[2] or "Vendedor")
 
@@ -178,8 +167,7 @@ class VentanaUsuario:
 
         if not usuario:
             raise ValueError("El usuario es obligatorio.")
-        if not contra or contra2:
-            raise ValueError("Las Contraseñas con obligatorias")
+
         if contra or contra2:
             if contra != contra2:
                 raise ValueError("Las contraseñas no coinciden.")
@@ -278,12 +266,6 @@ class VentanaUsuario:
     def boton_limpiar_formulario(self):
         self.id_seleccionado = None
         self.modo_edicion = False
-        try:
-            self.caja_id.config(state="normal")
-            self.caja_id.delete(0, tk.END)
-            self.caja_id.config(state="disabled")
-        except Exception:
-            pass
         self.caja_usuario.delete(0, tk.END)
         self.caja_contra.delete(0, tk.END)
         self.caja_contra2.delete(0, tk.END)
