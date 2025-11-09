@@ -72,13 +72,12 @@ class VentanaTaller:
         self.principal = principal
         self.ventana = tk.Toplevel(principal)
         self.ventana.title("Taller - Registro de trabajos")
-        self.ventana.geometry("1200x700")
+        self.ventana.state("zoomed")
         self.ventana.configure(bg="#0D1B2A")
 
         self.id_seleccionado = None
         self.modo_edicion = False
         self.filtro_estado = tk.StringVar(value="Todos")
-
 
         tk.Label(self.ventana, text="Registro Taller", bg="#0D1B2A", fg="white", font=("Arial", 16, "bold")).pack(pady=8)
 
@@ -117,9 +116,9 @@ class VentanaTaller:
         tk.Label(form, text="Filtrar estado:", bg="#0D1B2A", fg="white", font=("Arial", 11)).grid(row=6, column=0,padx=4, pady=6, sticky="w")
         combo_filtro = ttk.Combobox(form, textvariable=self.filtro_estado, state="readonly",values=["Todos", "Pendiente", "Reparado"], width=25)
         combo_filtro.grid(row=6, column=1, padx=4, pady=6, sticky="w")
-        combo_filtro.bind("<<ComboboxSelected>>")
+        combo_filtro.bind("<<ComboboxSelected>>", lambda e: self.cargar_listado())
 
-
+        self.cargar_vins_desperfecto()
 
         panel_listado = tk.Frame(botones_principales, bg="#0D1B2A")
         panel_listado.pack(side="right", fill="both", expand=True)
@@ -162,7 +161,7 @@ class VentanaTaller:
         scroll_y.pack(side="right", fill="y")
         scroll_x.pack(side="bottom", fill="x")
 
-        self.tabla.bind("<<TreeviewSelect>>")
+        self.tabla.bind("<<TreeviewSelect>>", self.seleccionar_fila)
 
         pie = tk.Frame(self.ventana, bg="#0D1B2A")
         pie.pack(fill="x", padx=10, pady=6)
@@ -178,13 +177,114 @@ class VentanaTaller:
         self.btn_salir = tk.Button(pie, text="Salir ↩️", command=self.boton_salir, bg="green", fg="white", font=("Arial", 12), width=12)
         self.btn_salir.pack(side="right", padx=6)
 
+        self.cargar_listado()
         self.actualizar_estado_botones()
+
+    def cargar_vins_desperfecto(self):
+        try:
+            with sqlite3.connect(DB_NAME) as conn:
+                conn.row_factory = sqlite3.Row
+                cur = conn.execute("SELECT vin FROM vehiculos WHERE lower(trim(estado)) = 'desperfecto' ORDER BY vin")
+                vins = [r["vin"] for r in cur.fetchall()]
+                if vins:
+                    self.combo_vin["values"] = vins
+                    self.combo_vin.set(vins[0])
+                else:
+                    self.combo_vin["values"] = ()
+                    self.combo_vin.set("")
+                    messagebox.showinfo("Info", "No se encontraron vehículos en estado 'Desperfecto'.")
+        except Exception:
+            self.combo_vin["values"] = ()
+            self.combo_vin.set("")
+            messagebox.showwarning("Aviso", "No se encontró la tabla 'vehiculos'. El combo VIN quedó vacío.")
+
+    def conectar(self):
+        return TrabajoTaller._conn()
+
+    def cargar_listado(self):
+        filtro = self.filtro_estado.get()
+        filtro_db = None if filtro == "Todos" else filtro
+        for x in self.tabla.get_children():
+            self.tabla.delete(x)
+        for t in TrabajoTaller.listar(order_by="id_taller", filtro_estado=filtro_db):
+            precio = f"{t['precio_costo']:.2f}" if t['precio_costo'] is not None else "0.00"
+            self.tabla.insert("", "end", iid=str(t["id_taller"]), values=(t["id_taller"], t["vin"], t["nombre_taller"], t["fecha_ingreso"], t["descripcion"], precio, t["estado"]))
+        self.boton_limpiar_formulario()
+
+    def seleccionar_fila(self, event=None):
+        sel = self.tabla.selection()
+        if not sel:
+            self.id_seleccionado = None
+            self.modo_edicion = False
+            self.actualizar_estado_botones()
+            return
+        iid = sel[0]
+        vals = self.tabla.item(iid, "values")
+        self.id_seleccionado = int(vals[0])
+        self.combo_vin.set(vals[1])
+        self.caja_taller.delete(0, tk.END); self.caja_taller.insert(0, vals[2])
+        self.caja_fecha.delete(0, tk.END); self.caja_fecha.insert(0, vals[3])
+        self.text_descripcion.delete("1.0", tk.END); self.text_descripcion.insert("1.0", vals[4] or "")
+        self.caja_precio.delete(0, tk.END); self.caja_precio.insert(0, vals[5] or "0.00")
+        self.combo_estado.set(vals[6])
+        self.modo_edicion = True
+        self.actualizar_estado_botones()
+
+    def leer_formulario(self):
+        vin = self.combo_vin.get().strip()
+        nombre_taller = self.caja_taller.get().strip()
+        fecha_ingreso = self.caja_fecha.get().strip()
+        descripcion = self.text_descripcion.get("1.0", tk.END).strip()
+        precio_txt = self.caja_precio.get().strip() or "0"
+        estado = self.combo_estado.get().strip()
+
+        if not vin:
+            raise ValueError("El VIN es obligatorio. Seleccione un vehículo del combo.")
+        if not nombre_taller:
+            raise ValueError("El nombre del taller/responsable es obligatorio.")
+        try:
+            datetime.strptime(fecha_ingreso, "%Y-%m-%d")
+        except Exception:
+            raise ValueError("Fecha inválida. Use formato YYYY-MM-DD.")
+        try:
+            precio = float(precio_txt)
+            if precio < 0:
+                raise ValueError("El precio costo no puede ser negativo.")
+        except ValueError:
+            raise ValueError("Precio inválido. Ingrese un número válido.")
+        if estado not in ("Pendiente", "Reparado"):
+            raise ValueError("Estado inválido.")
+        return TrabajoTaller(None, vin, nombre_taller, fecha_ingreso, descripcion, precio, estado)
+
+    def _sync_vehiculo_estado(self, vin, estado):
+        try:
+            with sqlite3.connect(DB_NAME) as conn:
+                if estado == "Reparado":
+                    conn.execute("UPDATE vehiculos SET estado = ? WHERE vin = ?", ("Reparado", vin))
+                else:
+                    conn.execute("UPDATE vehiculos SET estado = ? WHERE vin = ?", ("Desperfecto", vin))
+                conn.commit()
+        except Exception:
+            pass
 
     def boton_guardar(self):
         if self.modo_edicion:
             messagebox.showinfo("Guardar", "No puedes guardar mientras estás editando. Usa 'Editar' para aplicar cambios o 'Limpiar' para cancelar.")
             return
+        try:
+            trabajo = self.leer_formulario()
+            trabajo.guardar()
+            self._sync_vehiculo_estado(trabajo.vin, trabajo.estado)
+        except ValueError as e:
+            messagebox.showerror("Validación", str(e))
+            return
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al guardar: {e}")
+            return
 
+        messagebox.showinfo("Guardado", f"Trabajo registrado con ID {trabajo.id_taller}.")
+        self.cargar_vins_desperfecto()
+        self.cargar_listado()
 
     def boton_editar(self):
         if not self.id_seleccionado:
@@ -192,6 +292,21 @@ class VentanaTaller:
             return
         if not messagebox.askyesno("Confirmar edición", "¿Deseas aplicar los cambios al trabajo seleccionado?"):
             return
+        try:
+            trabajo = self.leer_formulario()
+            TrabajoTaller.modificar(self.id_seleccionado, trabajo)
+            self._sync_vehiculo_estado(trabajo.vin, trabajo.estado)
+        except ValueError as e:
+            messagebox.showerror("Validación", str(e))
+            return
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al actualizar: {e}")
+            return
+
+        messagebox.showinfo("Editado", f"Trabajo con ID {self.id_seleccionado} actualizado.")
+        self.cargar_vins_desperfecto()
+        self.cargar_listado()
+        self.modo_edicion = False
 
     def boton_eliminar(self):
         sel = self.tabla.selection()
@@ -205,7 +320,8 @@ class VentanaTaller:
         vin = vals[1] if vals else None
         TrabajoTaller.eliminar(int(id_str))
         messagebox.showinfo("Eliminado", "Trabajo eliminado con éxito.")
-
+        self.cargar_vins_desperfecto()
+        self.cargar_listado()
         self.boton_limpiar_formulario()
 
     def boton_limpiar_formulario(self):
