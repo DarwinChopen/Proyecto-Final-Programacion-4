@@ -95,7 +95,7 @@ class VentanaAutos:
         self.principal = principal
         self.ventana = tk.Toplevel(principal)
         self.ventana.title("Registrar Vehículo")
-        self.ventana.geometry("1200x700")
+        self.ventana.state("zoomed")
         self.ventana.configure(bg="#0D1B2A")
 
         self.vin_seleccionado = None
@@ -107,66 +107,66 @@ class VentanaAutos:
         botones_principales.pack(fill="both", expand=True, padx=10, pady=8)
 
         form = tk.Frame(botones_principales, bg="#0D1B2A")
-        form.pack(side="left", fill="y", padx=(4, 14))
+        form.pack(side="left", fill="y", padx=(5, 15))
 
 
-        tk.Label(form, text="Marca:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=0, column=0, padx=4, pady=4, sticky="w")
-        self.combo_marca = ttk.Combobox(form, state="readonly", width=28, values=sorted(Dic_MarcasyModelos.keys()))
+        tk.Label(form, text="Marca:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=0, column=0, padx=4, pady=10, sticky="w")
+        self.combo_marca = ttk.Combobox(form, state="readonly", width=30, values=sorted(Dic_MarcasyModelos.keys()))
         self.combo_marca.set("— Seleccione marca —")
-        self.combo_marca.grid(row=0, column=1, padx=4, pady=4, sticky="w")
+        self.combo_marca.grid(row=0, column=1, padx=4, pady=10, sticky="w")
         self.combo_marca.bind("<<ComboboxSelected>>", self.actualizar_modelos)
 
-        tk.Label(form, text="Modelo:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=1, column=0, padx=4, pady=4, sticky="w")
-        self.combo_modelo = ttk.Combobox(form, state="readonly", width=28)
+        tk.Label(form, text="Modelo:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=1, column=0, padx=4, pady=10, sticky="w")
+        self.combo_modelo = ttk.Combobox(form, state="readonly", width=30)
         self.combo_modelo.set("— Seleccione modelo —")
-        self.combo_modelo.grid(row=1, column=1, padx=4, pady=4, sticky="w")
+        self.combo_modelo.grid(row=1, column=1, padx=4, pady=10, sticky="w")
 
 
-        tk.Label(form, text="VIN :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=2, column=0, padx=4, pady=4, sticky="w")
-        self.caja_vin = tk.Entry(form, font=("Arial", 11), width=30)
-        self.caja_vin.grid(row=2, column=1, padx=4, pady=4, sticky="w")
+        tk.Label(form, text="VIN :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=2, column=0, padx=4, pady=10, sticky="w")
+        self.caja_vin = tk.Entry(form, font=("Arial", 11), width=25)
+        self.caja_vin.grid(row=2, column=1, padx=4, pady=10, sticky="w")
 
 
-        tk.Label(form, text="Color:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=3, column=0, padx=4, pady=4, sticky="w")
-        self.combo_color = ttk.Combobox(form, state="readonly", width=28,values=["Rojo", "Negro", "Blanco", "Gris", "Azul", "Plateado", "Verde", "Marron", "Amarillo", "Dorado", "Otro"])
+        tk.Label(form, text="Color:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=3, column=0, padx=4, pady=10, sticky="w")
+        self.combo_color = ttk.Combobox(form, state="readonly", width=30,values=["Rojo", "Negro", "Blanco", "Gris", "Azul", "Plateado", "Verde", "Marron", "Amarillo", "Dorado", "Otro"])
         self.combo_color.set("— Seleccione —")
-        self.combo_color.grid(row=3, column=1, padx=4, pady=4, sticky="w")
+        self.combo_color.grid(row=3, column=1, padx=4, pady=10, sticky="w")
 
-        tk.Label(form, text="Año:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=4, column=0, padx=4, pady=4, sticky="w")
-        self.combo_anio = ttk.Combobox(form, state="readonly", width=28, values=[str(a) for a in range(1995, 2026)])
+        tk.Label(form, text="Año:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=4, column=0, padx=4, pady=10, sticky="w")
+        self.combo_anio = ttk.Combobox(form, state="readonly", width=30, values=[str(a) for a in range(1995, 2026)])
         self.combo_anio.set("— Seleccione —")
-        self.combo_anio.grid(row=4, column=1, padx=4, pady=4, sticky="w")
+        self.combo_anio.grid(row=4, column=1, padx=4, pady=10, sticky="w")
 
-        tk.Label(form, text="Caja:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=5, column=0, padx=4, pady=4, sticky="w")
-        self.combo_caja = ttk.Combobox(form, state="readonly", width=28, values=["Manual", "Automática", "Trip Tronic"])
+        tk.Label(form, text="Caja:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=5, column=0, padx=4, pady=10, sticky="w")
+        self.combo_caja = ttk.Combobox(form, state="readonly", width=30, values=["Manual", "Automática", "Trip Tronic"])
         self.combo_caja.set("— Seleccione —")
-        self.combo_caja.grid(row=5, column=1, padx=4, pady=4, sticky="w")
+        self.combo_caja.grid(row=5, column=1, padx=4, pady=10, sticky="w")
 
-        tk.Label(form, text="Kilometraje (km):", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=6, column=0, padx=4, pady=4, sticky="w")
-        self.caja_kilometraje = tk.Entry(form, font=("Arial", 11), width=30)
-        self.caja_kilometraje.grid(row=6, column=1, padx=4, pady=4, sticky="w")
+        tk.Label(form, text="Kilometraje (km):", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=6, column=0, padx=4, pady=10, sticky="w")
+        self.caja_kilometraje = tk.Entry(form, font=("Arial", 11), width=25)
+        self.caja_kilometraje.grid(row=6, column=1, padx=4, pady=10, sticky="w")
 
-        tk.Label(form, text="Estado:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=7, column=0, padx=4, pady=4, sticky="w")
-        self.combo_estado = ttk.Combobox(form, state="readonly", width=28, values=["Bueno", "Desperfecto"])
+        tk.Label(form, text="Estado:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=7, column=0, padx=4, pady=10, sticky="w")
+        self.combo_estado = ttk.Combobox(form, state="readonly", width=30, values=["Bueno", "Desperfecto"])
         self.combo_estado.set("— Seleccione —")
-        self.combo_estado.grid(row=7, column=1, padx=4, pady=4, sticky="w")
+        self.combo_estado.grid(row=7, column=1, padx=4, pady=10, sticky="w")
 
-        tk.Label(form, text="Procedencia:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=8, column=0, padx=4, pady=4, sticky="w")
-        self.combo_procedencia = ttk.Combobox(form, state="readonly", width=28, values=["Nacional", "Importado"])
+        tk.Label(form, text="Procedencia:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=8, column=0, padx=4, pady=10, sticky="w")
+        self.combo_procedencia = ttk.Combobox(form, state="readonly", width=30, values=["Nacional", "Importado"])
         self.combo_procedencia.set("— Seleccione —")
-        self.combo_procedencia.grid(row=8, column=1, padx=4, pady=4, sticky="w")
+        self.combo_procedencia.grid(row=8, column=1, padx=4, pady=10, sticky="w")
 
-        tk.Label(form, text="Impuesto :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=9, column=0, padx=4, pady=4, sticky="w")
-        self.caja_impuesto = tk.Entry(form, font=("Arial", 11), width=30)
-        self.caja_impuesto.grid(row=9, column=1, padx=4, pady=4, sticky="w")
+        tk.Label(form, text="Impuesto :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=9, column=0, padx=4, pady=10, sticky="w")
+        self.caja_impuesto = tk.Entry(form, font=("Arial", 11), width=25)
+        self.caja_impuesto.grid(row=9, column=1, padx=4, pady=10, sticky="w")
 
-        tk.Label(form, text="Placa:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=10, column=0, padx=4, pady=4, sticky="w")
-        self.caja_placa = tk.Entry(form, font=("Arial", 11), width=30)
-        self.caja_placa.grid(row=10, column=1, padx=4, pady=4, sticky="w")
+        tk.Label(form, text="Placa:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=10, column=0, padx=4, pady=10, sticky="w")
+        self.caja_placa = tk.Entry(form, font=("Arial", 11), width=25)
+        self.caja_placa.grid(row=10, column=1, padx=4, pady=10, sticky="w")
 
-        tk.Label(form, text="Precio costo :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=11, column=0, padx=4, pady=4, sticky="w")
-        self.caja_precio = tk.Entry(form, font=("Arial", 11), width=30)
-        self.caja_precio.grid(row=11, column=1, padx=4, pady=4, sticky="w")
+        tk.Label(form, text="Precio costo :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=11, column=0, padx=4, pady=10, sticky="w")
+        self.caja_precio = tk.Entry(form, font=("Arial", 11), width=25)
+        self.caja_precio.grid(row=11, column=1, padx=4, pady=10, sticky="w")
 
         panel_listado = tk.Frame(botones_principales, bg="#0D1B2A")
         panel_listado.pack(side="right", fill="both", expand=True)
@@ -249,13 +249,8 @@ class VentanaAutos:
     def cargar_listado(self):
         for x in self.tabla.get_children():
             self.tabla.delete(x)
-        for f in Vehiculo.listar():
-            self.tabla.insert("", "end", iid=f["vin"], values=(
-                f["vin"], f["marca"], f["modelo"], f["color"] or "", f["anio"] or "",
-                f["caja"] or "", f["kilometraje"] or "", f["estado"] or "",
-                f["procedencia"] or "", f["impuesto"] or "", f["placa"] or "",
-                f["precio_costo"] or ""
-            ))
+        for c in Vehiculo.listar():
+            self.tabla.insert("", "end", iid=c["vin"], values=(c["vin"], c["marca"], c["modelo"], c["color"] or "", c["anio"] or "",c["caja"] or "", c["kilometraje"] or "", c["estado"] or "",c["procedencia"] or "", c["impuesto"] or "", c["placa"] or "",c["precio_costo"] or ""))
     def seleccionar_fila(self, event=None):
         sel = self.tabla.selection()
         if not sel:
@@ -279,15 +274,12 @@ class VentanaAutos:
         self.caja_impuesto.delete(0, tk.END); self.caja_impuesto.insert(0, vals[9])
         self.caja_placa.delete(0, tk.END); self.caja_placa.insert(0, vals[10])
         self.caja_precio.delete(0, tk.END); self.caja_precio.insert(0, vals[11])
-
         try:
             self.caja_vin.config(state="disabled")
         except Exception:
             pass
-
         self.modo_edicion = True
         self.actualizar_estado_botones()
-
     def leer_formulario(self):
         vin = self.caja_vin.get().strip()
         marca = self.combo_marca.get()
@@ -322,8 +314,6 @@ class VentanaAutos:
             raise ValueError("Selecciona la procedencia.")
         if not imp:
             raise ValueError("Ingresa el impuesto.")
-        if not placa:
-            raise ValueError("Ingresa la placa.")
         if not pre:
             raise ValueError("Ingresa el precio.")
 
@@ -342,16 +332,22 @@ class VentanaAutos:
 
     def boton_guardar(self):
         if self.modo_edicion:
-            messagebox.showinfo("Guardar", "No puedes guardar mientras estás editando un elemento seleccionado. Usa 'Editar' para aplicar cambios o 'Limpiar' para cancelar.")
+            messagebox.showinfo("Guardar","No puedes guardar mientras estás editando un vehículo. Usa 'Editar' para aplicar cambios o 'Limpiar' para cancelar.")
             return
         try:
             v = self.leer_formulario()
+            with Vehiculo._conn() as conn:
+                cur = conn.execute("SELECT vin FROM vehiculos WHERE vin = ?", (v.vin,))
+                if cur.fetchone():
+                    messagebox.showerror("Duplicado", f"El VIN '{v.vin}' ya existe.")
+                    return
             v.guardar()
-        except sqlite3.IntegrityError:
-            messagebox.showerror("Duplicado", "El VIN ya existe.")
-            return
         except ValueError as e:
-            messagebox.showerror("Validación", str(e)); return
+            messagebox.showerror("Validación", str(e))
+            return
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al guardar: {e}")
+            return
 
         messagebox.showinfo("Guardado", f"Vehículo '{v.vin}' guardado con éxito.")
         self.cargar_listado()
@@ -368,20 +364,17 @@ class VentanaAutos:
             v = self.leer_formulario()
             Vehiculo.modificar(self.vin_seleccionado, v)
             self.vin_seleccionado = v.vin
-        except sqlite3.IntegrityError:
-            messagebox.showerror("Duplicado", "El nuevo VIN ya existe.")
-            return
         except ValueError as e:
-            messagebox.showerror("Validación", str(e)); return
+            messagebox.showerror("Validación", str(e))
+            return
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al actualizar: {e}")
+            return
 
         messagebox.showinfo("Editado", f"Vehículo '{self.vin_seleccionado}' actualizado con éxito.")
         self.cargar_listado()
-
         self.modo_edicion = False
-
         self.tabla.selection_remove(self.tabla.selection())
-        for item in self.tabla.selection():
-            self.tabla.selection_remove(item)
         self.boton_limpiar_formulario()
 
     def boton_eliminar(self):
@@ -406,7 +399,6 @@ class VentanaAutos:
             self.caja_vin.config(state="normal")
         except Exception:
             pass
-
         self.combo_marca.set("— Selecciona marca —")
         self.combo_modelo.set("— Selecciona modelo —")
         self.combo_modelo["values"] = ()
@@ -417,6 +409,7 @@ class VentanaAutos:
         self.combo_procedencia.set("— Selecciona —")
         for e in (self.caja_vin, self.caja_kilometraje, self.caja_impuesto, self.caja_placa, self.caja_precio):
             e.delete(0, tk.END)
+
         for item in self.tabla.selection():
             self.tabla.selection_remove(item)
 
@@ -428,7 +421,7 @@ class VentanaAutos:
             try:
                 self.principal.deiconify()
             except Exception as e:
-                print("Error al deiconificar principal:", e)
+                pass
         self.ventana.destroy()
 
     def actualizar_estado_botones(self):
