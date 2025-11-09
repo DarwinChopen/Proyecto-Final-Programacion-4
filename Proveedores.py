@@ -69,7 +69,7 @@ class VentanaProveedores:
         self.principal = principal
         self.ventana = tk.Toplevel(principal)
         self.ventana.title("Registrar Proveedores")
-        self.ventana.geometry("1200x700")
+        self.ventana.state("zoomed")
         self.ventana.configure(bg="#0D1B2A")
 
         self.id_seleccionado = None
