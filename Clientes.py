@@ -2,8 +2,7 @@ import sqlite3
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-DB_FILE = "autoventas.db"
-
+DB_NAME = "autoventas.db"
 
 class Cliente:
     def __init__(self, dpi, nombres, apellidos, telefono, departamento, municipio, direccion):
@@ -17,7 +16,7 @@ class Cliente:
 
     @staticmethod
     def _conn():
-        conn = sqlite3.connect(DB_FILE)
+        conn = sqlite3.connect(DB_NAME)
         conn.row_factory = sqlite3.Row
         conn.execute("""
             CREATE TABLE IF NOT EXISTS clientes (
@@ -43,7 +42,7 @@ class Cliente:
     @staticmethod
     def listar():
         with Cliente._conn() as conn:
-            cur = conn.execute("SELECT * FROM clientes ORDER BY nombres, apellidos")
+            cur = conn.execute("SELECT * FROM clientes ")
             return cur.fetchall()
 
     @staticmethod
@@ -94,7 +93,7 @@ class VentanaClientes:
         self.principal = principal
         self.ventana = tk.Toplevel(principal)
         self.ventana.title("Registrar Clientes")
-        self.ventana.geometry("1200x700")
+        self.ventana.state("zoomed")
         self.ventana.configure(bg="#0D1B2A")
 
         self.dpi_seleccionado = None
