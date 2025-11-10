@@ -267,32 +267,42 @@ class VentanaAutos:
             self.actualizar_estado_botones()
             return
 
-        vin = sel[0]
+        vin = sel[0].strip().upper()
         vals = self.tabla.item(vin, "values")
-        self.vin_seleccionado = vals[0]
+        self.vin_seleccionado = vin
 
-        self.combo_marca.set(vals[1]); self.actualizar_modelos(); self.combo_modelo.set(vals[2])
-        self.caja_vin.delete(0, tk.END); self.caja_vin.insert(0, vals[0])
+        self.combo_marca.set(vals[1])
+        self.actualizar_modelos()
+        self.combo_modelo.set(vals[2])
+        self.caja_vin.config(state="normal")
+        self.caja_vin.delete(0, tk.END)
+        self.caja_vin.insert(0, vin)
         self.combo_color.set(vals[3] if vals[3] else "— Selecciona —")
         self.combo_anio.set(str(vals[4]) if vals[4] else "— Selecciona —")
         self.combo_caja.set(vals[5] if vals[5] else "— Selecciona —")
-        self.caja_kilometraje.delete(0, tk.END); self.caja_kilometraje.insert(0, vals[6])
+        self.caja_kilometraje.delete(0, tk.END)
+        self.caja_kilometraje.insert(0, vals[6])
         self.combo_estado.set(vals[7] if vals[7] else "— Selecciona —")
         self.combo_procedencia.set(vals[8] if vals[8] else "— Selecciona —")
-        self.caja_impuesto.delete(0, tk.END); self.caja_impuesto.insert(0, vals[9])
-        self.caja_placa.delete(0, tk.END); self.caja_placa.insert(0, vals[10])
-        self.caja_precio.delete(0, tk.END); self.caja_precio.insert(0, vals[11])
+        self.caja_impuesto.delete(0, tk.END)
+        self.caja_impuesto.insert(0, vals[9])
+        self.caja_placa.delete(0, tk.END)
+        self.caja_placa.insert(0, vals[10])
+        self.caja_precio.delete(0, tk.END)
+        self.caja_precio.insert(0, vals[11])
         vendido_val = vals[12] if len(vals) > 12 else "No"
-        self.vin_vendido = 1 if str(vendido_val).strip().lower() in ("1","sí","si","yes","true") else 0
+        self.vin_vendido = 1 if str(vendido_val).strip().lower() in ("1", "sí", "si", "yes", "true") else 0
+
         try:
             self.caja_vin.config(state="disabled")
         except Exception:
             pass
+
         self.modo_edicion = True
         self.actualizar_estado_botones()
 
     def leer_formulario(self):
-        vin = self.caja_vin.get().strip()
+        vin = self.caja_vin.get().strip().upper()
         marca = self.combo_marca.get()
         modelo = self.combo_modelo.get()
         color = self.combo_color.get()
@@ -334,9 +344,30 @@ class VentanaAutos:
         estado = None if estado.startswith("—") else estado
         procedencia = None if procedencia.startswith("—") else procedencia
 
-        kilometraje = int(km) if km else None
-        impuesto = float(imp) if imp else None
-        precio = float(pre) if pre else None
+        km_norm = km.replace(",", ".")
+        imp_norm = imp.replace(",", ".")
+        pre_norm = pre.replace(",", ".")
+
+        try:
+            kilometraje = int(float(km_norm))
+        except ValueError:
+            raise ValueError("Kilometraje debe ser un número entero válido.")
+        if kilometraje <= 0:
+            raise ValueError("El kilometraje debe ser mayor que 0.")
+
+        try:
+            impuesto = float(imp_norm)
+        except ValueError:
+            raise ValueError("Impuesto debe ser un número válido.")
+        if impuesto <= 0:
+            raise ValueError("El impuesto debe ser mayor que 0.")
+
+        try:
+            precio = float(pre_norm)
+        except ValueError:
+            raise ValueError("Precio debe ser un número válido.")
+        if precio <= 0:
+            raise ValueError("El precio de costo debe ser mayor que 0.")
 
         vendido_flag = self.vin_vendido
 
@@ -345,12 +376,13 @@ class VentanaAutos:
 
     def boton_guardar(self):
         if self.modo_edicion:
-            messagebox.showinfo("Guardar","No puedes guardar mientras estás editando un vehículo. Usa 'Editar' para aplicar cambios o 'Limpiar' para cancelar.")
+            messagebox.showinfo("Guardar",
+                                "No puedes guardar mientras estás editando un vehículo. Usa 'Editar' para aplicar cambios o 'Limpiar' para cancelar.")
             return
         try:
             v = self.leer_formulario()
             with Vehiculo._conn() as conn:
-                cur = conn.execute("SELECT vin FROM vehiculos WHERE vin = ?", (v.vin,))
+                cur = conn.execute("SELECT vin FROM vehiculos WHERE UPPER(TRIM(vin)) = ?", (v.vin,))
                 if cur.fetchone():
                     messagebox.showerror("Duplicado", f"El VIN '{v.vin}' ya existe.")
                     return
@@ -380,8 +412,20 @@ class VentanaAutos:
 
         try:
             v = self.leer_formulario()
-            Vehiculo.modificar(self.vin_seleccionado, v)
+            original_vin = self.vin_seleccionado.strip().upper()
+
+            with Vehiculo._conn() as conn:
+                cur = conn.execute(
+                    "SELECT vin FROM vehiculos WHERE UPPER(TRIM(vin)) = ? AND UPPER(TRIM(vin)) != ?",
+                    (v.vin, original_vin)
+                )
+                if cur.fetchone():
+                    messagebox.showerror("Duplicado", f"El VIN '{v.vin}' ya existe en otro vehículo.")
+                    return
+
+            Vehiculo.modificar(original_vin, v)
             self.vin_seleccionado = v.vin
+
         except ValueError as e:
             messagebox.showerror("Validación", str(e))
             return
