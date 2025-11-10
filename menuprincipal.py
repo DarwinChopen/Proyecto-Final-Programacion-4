@@ -62,7 +62,9 @@ class VentanaPrincipal:
         VentanaClientes(self.ventana)
 
     def abrir_venta(self):
-        pass
+        self.ventana.withdraw()
+        from Ventas import VentanaVentas
+        VentanaVentas(self.ventana)
 
     def abrir_usuario(self):
         if self.rol != "Administrador":
