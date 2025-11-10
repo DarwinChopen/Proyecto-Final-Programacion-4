@@ -5,7 +5,7 @@ from tkinter import messagebox, ttk
 DB_NAME = "autoventas.db"
 
 class Vehiculo:
-    def __init__(self, vin, marca, modelo, color, anio, caja, kilometraje, estado, procedencia, impuesto, placa, precio_costo):
+    def __init__(self, vin, marca, modelo, color, anio, caja, kilometraje, estado, procedencia, impuesto, placa, precio_costo, vendido=0):
         self.vin = vin
         self.marca = marca
         self.modelo = modelo
@@ -18,6 +18,7 @@ class Vehiculo:
         self.impuesto = impuesto
         self.placa = placa
         self.precio_costo = precio_costo
+        self.vendido = vendido
 
     @staticmethod
     def _conn():
@@ -36,7 +37,8 @@ class Vehiculo:
                 procedencia TEXT NOT NULL,
                 impuesto REAL,
                 placa TEXT NOT NULL,
-                precio_costo REAL
+                precio_costo REAL,
+                vendido INTEGER DEFAULT 0
             );
         """)
         conn.commit()
@@ -45,19 +47,26 @@ class Vehiculo:
     def guardar(self):
         with Vehiculo._conn() as conn:
             conn.execute(
-                """INSERT INTO vehiculos (vin, marca, modelo, color, anio, caja, kilometraje,estado, procedencia, impuesto, placa, precio_costo)VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (self.vin, self.marca, self.modelo, self.color, self.anio, self.caja,self.kilometraje, self.estado, self.procedencia, self.impuesto,self.placa, self.precio_costo))
+                """INSERT INTO vehiculos (vin, marca, modelo, color, anio, caja, kilometraje,estado, procedencia, impuesto, placa, precio_costo, vendido)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (self.vin, self.marca, self.modelo, self.color, self.anio, self.caja, self.kilometraje, self.estado, self.procedencia, self.impuesto, self.placa, self.precio_costo, self.vendido)
+            )
         print(f"Vehículo '{self.vin}' guardado con éxito.")
 
     @staticmethod
     def listar():
         with Vehiculo._conn() as conn:
-            cur = conn.execute("SELECT * FROM vehiculos ORDER BY marca, modelo, anio DESC")
+            cur = conn.execute("SELECT * FROM vehiculos")
             return cur.fetchall()
 
     @staticmethod
     def modificar(vin_original, vehiculo_nuevo: "Vehiculo"):
         with Vehiculo._conn() as conn:
+            cur = conn.execute("SELECT vendido FROM vehiculos WHERE vin = ?", (vin_original,))
+            row = cur.fetchone()
+            if row and row["vendido"] == 1:
+                raise Exception("No se puede editar: vehículo ya está marcado como VENDIDO.")
+
             conn.execute(
                 """
                 UPDATE vehiculos
@@ -75,6 +84,10 @@ class Vehiculo:
     @staticmethod
     def eliminar(vin):
         with Vehiculo._conn() as conn:
+            cur = conn.execute("SELECT vendido FROM vehiculos WHERE vin = ?", (vin,))
+            row = cur.fetchone()
+            if row and row["vendido"] == 1:
+                raise Exception("No se puede eliminar: vehículo ya está marcado como VENDIDO.")
             conn.execute("DELETE FROM vehiculos WHERE vin = ?", (vin,))
         print(f"Vehículo '{vin}' eliminado con éxito.")
 
@@ -100,6 +113,7 @@ class VentanaAutos:
 
         self.vin_seleccionado = None
         self.modo_edicion = False
+        self.vin_vendido = 0
 
         tk.Label(self.ventana, text="Registro de Vehículos", bg="#0D1B2A", fg="white",font=("Arial", 16, "bold")).pack(pady=8)
 
@@ -108,7 +122,6 @@ class VentanaAutos:
 
         form = tk.Frame(botones_principales, bg="#0D1B2A")
         form.pack(side="left", fill="y", padx=(5, 15))
-
 
         tk.Label(form, text="Marca:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=0, column=0, padx=4, pady=10, sticky="w")
         self.combo_marca = ttk.Combobox(form, state="readonly", width=30, values=sorted(Dic_MarcasyModelos.keys()))
@@ -121,11 +134,9 @@ class VentanaAutos:
         self.combo_modelo.set("— Seleccione modelo —")
         self.combo_modelo.grid(row=1, column=1, padx=4, pady=10, sticky="w")
 
-
         tk.Label(form, text="VIN :", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=2, column=0, padx=4, pady=10, sticky="w")
         self.caja_vin = tk.Entry(form, font=("Arial", 11), width=25)
         self.caja_vin.grid(row=2, column=1, padx=4, pady=10, sticky="w")
-
 
         tk.Label(form, text="Color:", bg="#0D1B2A", fg="white", font=("Arial", 11), width=18, anchor="w").grid(row=3, column=0, padx=4, pady=10, sticky="w")
         self.combo_color = ttk.Combobox(form, state="readonly", width=30,values=["Rojo", "Negro", "Blanco", "Gris", "Azul", "Plateado", "Verde", "Marron", "Amarillo", "Dorado", "Otro"])
@@ -190,38 +201,32 @@ class VentanaAutos:
                   foreground=[("selected", "white")]
                   )
 
-        columnas = ("vin", "marca", "modelo", "color", "anio", "caja", "km", "estado","procedencia", "impuesto", "placa", "precio")
+        columnas = ("vin", "marca", "modelo", "color", "anio", "caja", "km", "estado","procedencia", "impuesto", "placa", "precio", "vendido")
         self.tabla = ttk.Treeview(panel_listado, columns=columnas, show="headings", height=18)
 
-        encabezados = {"vin": "VIN", "marca": "Marca", "modelo": "Modelo", "color": "Color","anio": "Año", "caja": "Caja", "km": "Kilometraje", "estado": "Estado","procedencia": "Procedencia", "impuesto": "Impuesto", "placa": "Placa", "precio": "Precio costo"}
+        encabezados = {"vin": "VIN", "marca": "Marca", "modelo": "Modelo", "color": "Color","anio": "Año", "caja": "Caja", "km": "Kilometraje", "estado": "Estado","procedencia": "Procedencia", "impuesto": "Impuesto", "placa": "Placa", "precio": "Precio costo", "vendido":"Vendido"}
         for col, txt in encabezados.items():
             self.tabla.heading(col, text=txt)
 
-        anchos = {"vin":140,"marca":110,"modelo":120,"color":80,"anio":60,"caja":90,"km":100,"estado":90,"procedencia":100,"impuesto":90,"placa":90,"precio":100}
+        anchos = {"vin":140,"marca":110,"modelo":120,"color":80,"anio":60,"caja":90,"km":100,"estado":90,"procedencia":100,"impuesto":90,"placa":90,"precio":100,"vendido":80}
         for col, w in anchos.items():
             self.tabla.column(col, width=w, anchor="w")
-
 
         scroll_y = ttk.Scrollbar(panel_listado, orient="vertical", command=self.tabla.yview)
         self.tabla.configure(yscrollcommand=scroll_y.set)
 
-
         scroll_x = ttk.Scrollbar(panel_listado, orient="horizontal", command=self.tabla.xview)
         self.tabla.configure(xscrollcommand=scroll_x.set)
-
 
         self.tabla.pack(side="top", fill="both", expand=True, padx=(4, 0), pady=(4, 0))
         scroll_y.pack(side="right", fill="y")
         scroll_x.pack(side="bottom", fill="x")
 
-
         self.tabla.bind("<<TreeviewSelect>>", self.seleccionar_fila)
         self.cargar_listado()
 
-
         pie = tk.Frame(self.ventana, bg="#0D1B2A")
         pie.pack(fill="x", padx=10, pady=8)
-
 
         self.btn_guardar = tk.Button(pie, text="Guardar 💾", command=self.boton_guardar,bg="dim grey", fg="white", font=("Arial", 13), width=12)
         self.btn_guardar.pack(side="left", padx=6)
@@ -250,12 +255,15 @@ class VentanaAutos:
         for x in self.tabla.get_children():
             self.tabla.delete(x)
         for c in Vehiculo.listar():
-            self.tabla.insert("", "end", iid=c["vin"], values=(c["vin"], c["marca"], c["modelo"], c["color"] or "", c["anio"] or "",c["caja"] or "", c["kilometraje"] or "", c["estado"] or "",c["procedencia"] or "", c["impuesto"] or "", c["placa"] or "",c["precio_costo"] or ""))
+            vendido_txt = "Sí" if (c["vendido"] == 1) else "No"
+            self.tabla.insert("", "end", iid=c["vin"], values=(c["vin"], c["marca"], c["modelo"], c["color"] or "", c["anio"] or "",c["caja"] or "", c["kilometraje"] or "", c["estado"] or "",c["procedencia"] or "", c["impuesto"] or "", c["placa"] or "",c["precio_costo"] or "", vendido_txt))
+
     def seleccionar_fila(self, event=None):
         sel = self.tabla.selection()
         if not sel:
             self.vin_seleccionado = None
             self.modo_edicion = False
+            self.vin_vendido = 0
             self.actualizar_estado_botones()
             return
 
@@ -274,12 +282,15 @@ class VentanaAutos:
         self.caja_impuesto.delete(0, tk.END); self.caja_impuesto.insert(0, vals[9])
         self.caja_placa.delete(0, tk.END); self.caja_placa.insert(0, vals[10])
         self.caja_precio.delete(0, tk.END); self.caja_precio.insert(0, vals[11])
+        vendido_val = vals[12] if len(vals) > 12 else "No"
+        self.vin_vendido = 1 if str(vendido_val).strip().lower() in ("1","sí","si","yes","true") else 0
         try:
             self.caja_vin.config(state="disabled")
         except Exception:
             pass
         self.modo_edicion = True
         self.actualizar_estado_botones()
+
     def leer_formulario(self):
         vin = self.caja_vin.get().strip()
         marca = self.combo_marca.get()
@@ -327,8 +338,10 @@ class VentanaAutos:
         impuesto = float(imp) if imp else None
         precio = float(pre) if pre else None
 
+        vendido_flag = self.vin_vendido
+
         return Vehiculo(vin, marca, modelo, color, anio, caja, kilometraje,
-                        estado, procedencia, impuesto, placa, precio)
+                        estado, procedencia, impuesto, placa, precio, vendido_flag)
 
     def boton_guardar(self):
         if self.modo_edicion:
@@ -357,6 +370,11 @@ class VentanaAutos:
         if not self.vin_seleccionado:
             messagebox.showwarning("Editar", "Selecciona un vehículo del listado.")
             return
+
+        if self.vin_vendido == 1:
+            messagebox.showwarning("Editar", "No se puede editar: vehículo marcado como VENDIDO.")
+            return
+
         if not messagebox.askyesno("Confirmar edición", "¿Deseas aplicar los cambios al vehículo seleccionado?"):
             return
 
@@ -384,10 +402,18 @@ class VentanaAutos:
             return
         vin = sel[0]
 
-        if not messagebox.askyesno("Confirmar eliminación", f"¿Está seguro de eliminar el vehículo con VIN '{vin}'? Esta acción no se puede deshacer."):
+        if self.vin_vendido == 1:
+            messagebox.showwarning("Eliminar", "No se puede eliminar: vehículo marcado como VENDIDO.")
             return
 
-        Vehiculo.eliminar(vin)
+        if not messagebox.askyesno("Confirmar eliminación", f"¿Está seguro de eliminar el vehículo con VIN '{vin}'? Esta acción no se puede deshacer."):
+            return
+        try:
+            Vehiculo.eliminar(vin)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo eliminar: {e}")
+            return
+
         messagebox.showinfo("Eliminado", f"Vehículo '{vin}' eliminado con éxito.")
         self.cargar_listado()
         self.boton_limpiar_formulario()
@@ -395,6 +421,7 @@ class VentanaAutos:
     def boton_limpiar_formulario(self):
         self.vin_seleccionado = None
         self.modo_edicion = False
+        self.vin_vendido = 0
         try:
             self.caja_vin.config(state="normal")
         except Exception:
@@ -409,14 +436,11 @@ class VentanaAutos:
         self.combo_procedencia.set("— Selecciona —")
         for e in (self.caja_vin, self.caja_kilometraje, self.caja_impuesto, self.caja_placa, self.caja_precio):
             e.delete(0, tk.END)
-
         for item in self.tabla.selection():
             self.tabla.selection_remove(item)
-
         self.actualizar_estado_botones()
 
     def boton_salir(self):
-
         if hasattr(self.principal, "deiconify"):
             try:
                 self.principal.deiconify()
@@ -425,10 +449,14 @@ class VentanaAutos:
         self.ventana.destroy()
 
     def actualizar_estado_botones(self):
-        if self.modo_edicion or self.vin_seleccionado:
+        if (self.modo_edicion or self.vin_seleccionado) and self.vin_vendido == 0:
             self.btn_guardar.config(state="disabled")
             self.btn_editar.config(state="normal")
             self.btn_eliminar.config(state="normal")
+        elif self.vin_vendido == 1:
+            self.btn_guardar.config(state="disabled")
+            self.btn_editar.config(state="disabled")
+            self.btn_eliminar.config(state="disabled")
         else:
             self.btn_guardar.config(state="normal")
             self.btn_editar.config(state="disabled")
